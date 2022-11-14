@@ -1,0 +1,4 @@
+#+title: Search through browser history in Emacs
+
+** Status: experimental
+I just created it, and it has many rough edges. It's been tested only on a Mac with Chrome, Brave and Firefox.
