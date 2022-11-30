@@ -9,7 +9,7 @@
 ;; Version: 0.0.1
 ;; Keywords: convenience hypermedia matching tools
 ;; Homepage: https://github.com/agzam/browser-hist.el
-;; Package-Requires: ((emacs "27.1"))
+;; Package-Requires: ((emacs "28"))
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -37,10 +37,7 @@
 (defcustom browser-hist-default-browser 'brave
   "Default browser."
   :group 'browser-hist
-  :type '(choice
-          (const 'chrome)
-          (const 'chrome)
-          (const 'firefox)))
+  :type '(chrome brave firefox))
 
 (defcustom browser-hist-ignore-query-params t
   "When not nil, ignore everything after ? in url."
@@ -48,9 +45,9 @@
   :type 'boolean)
 
 (defvar browser-hist--db-queries
-  '((chrome . "select title, url from urls order by last_visit_time desc")
-    (brave . "select title, url from urls order by last_visit_time desc")
-    (firefox . "select title, url from moz_places order by last_visit_date desc")))
+  '((chrome . "select distinct title, url from urls order by last_visit_time desc")
+    (brave . "select distinct title, url from urls order by last_visit_time desc")
+    (firefox . "select distinct title, url from moz_places order by last_visit_date desc")))
 
 (defun browser-hist--make-db-copy (browser)
   "Copy browser's history db file to a temp dir.
@@ -80,42 +77,29 @@ db, we copy the file."
                        (if browser-hist-ignore-query-params "\\?.*" "")
                        "" (cadr x)) "/")
                      (car x)))))))
-    (seq-uniq rows (lambda (a b) (string= (car a) (car b))))))
+    rows))
 
 (defun browser-hist--completing-fn (coll)
   "Filter COLL when passed to completing-read."
-  (lambda (str _ flag)
+  (lambda (s _ flag)
     (pcase flag
       ('metadata
        `(metadata
          (annotation-function
           ,@(lambda (x)
-              (format "\n\t%s" (alist-get x coll nil nil #'string=))))
+              (concat
+               "\n\t"
+               (propertize
+                (alist-get x coll nil nil #'string=)
+                'face 'completions-annotations))))
          (display-sort-function ; keep rows sorted as they come from db
           ,@(lambda (xs) xs))
          (category . url)))
       ('t
-       (if (< (length str) 2)
-           (all-completions str (thread-last coll (take 20)))
-         (thread-last
-           coll
-           (seq-filter
-            (lambda (x)
-              (unless (string-blank-p str)
-                (or
-                 (string-match-p str (cdr x))
-                 (string-match-p str (car x))))))
-           (seq-map #'car)))))))
+       (all-completions s coll)))))
 
 (defun browser-hist-search ()
   (interactive)
-  (let* ((rows (browser-hist--query browser-hist-default-browser))
-         (selection (completing-read
-                     "Browser history: "
-                     (browser-hist--completing-fn rows))))
-    selection))
-
-(defun consult-browser-history ()
   (let* ((coll (seq-map
                 (lambda (x)
                   (cons
@@ -124,16 +108,8 @@ db, we copy the file."
                     (propertize (cdr x) 'invisible t))
                    (cdr x)))
                 (browser-hist--query browser-hist-default-browser))))
-    (consult--read
-     coll
-     :prompt "Browser history: "
-     :sort nil
-     :annotate (lambda (x)
-                 (format "\n\t%s" (alist-get x coll nil nil #'string=)))
-     :category 'url)
-    )
-  )
-
-
+    (completing-read
+     "Browser history: "
+     (browser-hist--completing-fn coll))))
 
 ;;; browser-hist.el ends here

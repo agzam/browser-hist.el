@@ -1,4 +1,34 @@
-#+title: Search through browser history in Emacs
+#+title: Search through the Browser history, in Emacs
+
+** Description
+Browsers usually keep their history in a sqlite database, and it's trivial to extract it. This package allows you to search through your browser history by URL and the Page Title.
+
+** How to use it
+*** 1. Install the package using your favorite package manager.
+*** 2. Set the mandatory variables
+- =browser-hist-db-paths= is an association list with paths to browser DBs.
+  *It needs to be set!*
+  The package currently doesn't have a way for discovering these paths, so this step has to be done manually.
+
+  example:
+  #+begin_src elisp
+  (setq browser-hist-db-paths
+        '((chrome . "$HOME/Library/Application Support/Google/Chrome/Default/History")
+          (brave . "$HOME/Library/Application Support/BraveSoftware/Brave-Browser/Default/History")
+          (firefox . "$HOME/Library/Application Support/Firefox/Profiles/rmgcr4hw.default-release/places.sqlite")))
+  #+end_src
+
+  You may ignore the browsers you don't use; right now the package works only with a single browser. Retrieving data for multiple browsers will be added at some point.
+
+- =browser-hist-default-browser= - set this var, the package doesn't know yet how to resolve the default browser automatically
+
+  example:
+  #+begin_src elisp
+  (setq browser-hist-default-browser 'chrome)
+  #+end_src
+
+*** 3. Try it
+There's only one command =browser-hist-search=, try it and see if it works.
 
 ** Status: experimental
 I just created it, and it has many rough edges. It's been tested only on a Mac with Chrome, Brave and Firefox.
