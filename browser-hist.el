@@ -96,8 +96,7 @@ db, we copy the file."
          (category . url)))
       ('t
        (if (< (length str) 2)
-           (all-completions str
-                            (thread-last coll (take 20)))
+           (all-completions str (thread-last coll (take 20)))
          (thread-last
            coll
            (seq-filter
@@ -115,5 +114,26 @@ db, we copy the file."
                      "Browser history: "
                      (browser-hist--completing-fn rows))))
     selection))
+
+(defun consult-browser-history ()
+  (let* ((coll (seq-map
+                (lambda (x)
+                  (cons
+                   (concat
+                    (car x)
+                    (propertize (cdr x) 'invisible t))
+                   (cdr x)))
+                (browser-hist--query browser-hist-default-browser))))
+    (consult--read
+     coll
+     :prompt "Browser history: "
+     :sort nil
+     :annotate (lambda (x)
+                 (format "\n\t%s" (alist-get x coll nil nil #'string=)))
+     :category 'url)
+    )
+  )
+
+
 
 ;;; browser-hist.el ends here
