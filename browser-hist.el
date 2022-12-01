@@ -21,6 +21,8 @@
 ;;
 ;;; Code:
 
+(require 'subr-x)
+
 (defgroup browser-hist nil
   "browser-hist group"
   :prefix "browser-hist-"
