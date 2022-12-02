@@ -21,6 +21,8 @@
 ;;
 ;;; Code:
 
+(require 'browse-url)
+
 (defgroup browser-hist nil
   "browser-hist group"
   :prefix "browser-hist-"
@@ -98,30 +100,28 @@ db, we copy the file."
       ('t
        (all-completions s coll)))))
 
-(defun browser-hist--url-trim (type target)
+(defun browser-hist--url-transformer (type target)
   "Remove title from TARGET url appended by `browser-hist-search'"
   `(,type .
     ,(replace-regexp-in-string "\t.*" "" target)))
 
+(defun browser-hist--url-handler (url &rest _)
+  "Remove title from TARGET url appended by `browser-hist-search'"
+  (browse-url (replace-regexp-in-string "\t.*" "" url)))
+
 (defun browser-hist-search ()
   "Search through browser history."
   (interactive)
-  ;; temporarily adjust browse-url-handlers
-  ;; so it properly handles URLs with the appended titles
-  (setq prev-browse-url-handlers browse-url-handlers)
-  (add-to-list
-   'browse-url-handlers
-   `(".*\t" . ,(lambda (x &rest _)
-                 (browse-url
-                  (replace-regexp-in-string "\t.*" "" x))
-                 (setq browse-url-handlers prev-browse-url-handlers)
-                 (makunbound prev-browse-url-handlers))))
+  (unless (member '(".*\t" . browser-hist--url-handler)
+                  browse-url-handlers)
+    (add-to-list 'browse-url-handlers '(".*\t" . browser-hist--url-handler)))
+
   (when (boundp 'embark-transformer-alist)
-    (unless (member '(url . browser-hist--url-trim)
+    (unless (member '(url . browser-hist--url-transformer)
                     embark-transformer-alist)
       (add-to-list
        'embark-transformer-alist
-       '(url . browser-hist--url-trim))))
+       '(url . browser-hist--url-transformer))))
 
   (let* ((coll (seq-map
                 (lambda (x)
