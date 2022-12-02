@@ -39,7 +39,7 @@
   :group 'browser-hist
   :type '(chrome brave firefox))
 
-(defcustom browser-hist-ignore-query-params t
+(defcustom browser-hist-ignore-query-params nil
   "When not nil, ignore everything after ? in url."
   :group 'browser-hist
   :type 'boolean)
@@ -104,6 +104,7 @@ db, we copy the file."
     ,(replace-regexp-in-string "\t.*" "" target)))
 
 (defun browser-hist-search ()
+  "Search through browser history."
   (interactive)
   ;; temporarily adjust browse-url-handlers
   ;; so it properly handles URLs with the appended titles
