@@ -32,3 +32,13 @@ There's only one command =browser-hist-search=, try it and see if it works.
 
 ** Status: experimental
 I just created it, and it has many rough edges. It's been tested only on a Mac with Chrome, Brave and Firefox.
+** FAQ
+*** What's the point? Why even have this if you can do it in the browser?
+- It's convenient and a bit faster to bind the command to a key.
+- And then, using an [[https://github.com/oantolin/embark][Embark]] Action you can open the link in EWW, in XWidget, or any other browser (not necessarily the history origin one).
+- You can also narrow the search and export the results into a separate buffer using Embark Collect.
+- It opens some other possibilities like sending a link to a browser but forcing it to find the tab (if there's an open one already, e.g., why open another GMail tab?) /I'll share an example of how this could be done using Applescript/.
+  Or maybe open the link in a private tab of a chosen browser.
+- I'm also hoping at some point to collect data from multiple browsers.
+*** How come when I type, it highlights within URLs, but not titles
+see: https://github.com/agzam/browser-hist.el/issues/7

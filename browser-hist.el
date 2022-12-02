@@ -98,18 +98,42 @@ db, we copy the file."
       ('t
        (all-completions s coll)))))
 
+(defun browser-hist--url-trim (type target)
+  "Remove title from TARGET url appended by `browser-hist-search'"
+  `(,type .
+    ,(replace-regexp-in-string "\t.*" "" target)))
+
 (defun browser-hist-search ()
   (interactive)
+  ;; temporarily adjust browse-url-handlers
+  ;; so it properly handles URLs with the appended titles
+  (setq prev-browse-url-handlers browse-url-handlers)
+  (add-to-list
+   'browse-url-handlers
+   `(".*\t" . ,(lambda (x &rest _)
+                 (browse-url
+                  (replace-regexp-in-string "\t.*" "" x))
+                 (setq browse-url-handlers prev-browse-url-handlers)
+                 (makunbound prev-browse-url-handlers))))
+  (when (boundp 'embark-transformer-alist)
+    (unless (member '(url . browser-hist--url-trim)
+                    embark-transformer-alist)
+      (add-to-list
+       'embark-transformer-alist
+       '(url . browser-hist--url-trim))))
+
   (let* ((coll (seq-map
                 (lambda (x)
                   (cons
                    (concat
                     (car x)
+                    "\t"
                     (propertize (cdr x) 'invisible t))
                    (cdr x)))
-                (browser-hist--query browser-hist-default-browser))))
-    (completing-read
-     "Browser history: "
-     (browser-hist--completing-fn coll))))
+                (browser-hist--query browser-hist-default-browser)))
+         (selected (thread-last
+                     (browser-hist--completing-fn coll)
+                     (completing-read "Browser history: "))))
+    (browse-url selected)))
 
 ;;; browser-hist.el ends here
