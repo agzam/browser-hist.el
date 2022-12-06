@@ -36,7 +36,7 @@
   :group 'browser-hist
   :type '(alist :key-type symbol :value string))
 
-(defcustom browser-hist-default-browser 'brave
+(defcustom browser-hist-default-browser 'chrome
   "Default browser."
   :group 'browser-hist
   :type '(chrome brave firefox))
