@@ -51,6 +51,13 @@
     (brave . "select distinct title, url from urls order by last_visit_time desc")
     (firefox . "select distinct title, url from moz_places order by last_visit_date desc")))
 
+
+(defvar browser-hist-use-cache nil
+  "Cache results until next session or universal argument is passed.")
+
+(defvar browser-hist--db-cached nil
+  "Holds the current browser history cache.")
+
 (defun browser-hist--make-db-copy (browser)
   "Copy browser's history db file to a temp dir.
 Browser history file is usually locked, in order to connect to
@@ -109,9 +116,12 @@ db, we copy the file."
   "Remove title from TARGET url appended by `browser-hist-search'"
   (browse-url (replace-regexp-in-string "\t.*" "" url)))
 
-(defun browser-hist-search ()
-  "Search through browser history."
-  (interactive)
+(defun browser-hist-search (&optional clear-cache)
+  "Search through browser history.
+
+When `browser-hist-use-cache' is not nil, CLEAR-CACHE can be
+passed using universal argument to refresh the cache."
+  (interactive "P")
   (unless (member '(".*\t" . browser-hist--url-handler)
                   browse-url-handlers)
     (add-to-list 'browse-url-handlers '(".*\t" . browser-hist--url-handler)))
@@ -123,6 +133,9 @@ db, we copy the file."
        'embark-transformer-alist
        '(url . browser-hist--url-transformer))))
 
+  (when (or clear-cache (not browser-hist--db-cached) (not browser-hist-use-cache))
+      (setq browser-hist--db-cached (browser-hist--query browser-hist-default-browser)))
+
   (let* ((coll (seq-map
                 (lambda (x)
                   (cons
@@ -131,10 +144,8 @@ db, we copy the file."
                     "\t"
                     (propertize (cdr x) 'invisible t))
                    (cdr x)))
-                (browser-hist--query browser-hist-default-browser)))
-         (selected (thread-last
-                     (browser-hist--completing-fn coll)
-                     (completing-read "Browser history: "))))
+                browser-hist--db-cached))
+         (selected (completing-read "Browser history: " (browser-hist--completing-fn coll))))
     (browse-url selected)))
 
 ;;; browser-hist.el ends here
