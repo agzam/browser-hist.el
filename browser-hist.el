@@ -9,7 +9,7 @@
 ;; Version: 0.0.1
 ;; Keywords: convenience hypermedia matching tools
 ;; Homepage: https://github.com/agzam/browser-hist.el
-;; Package-Requires: ((emacs "28"))
+;; Package-Requires: ((emacs "29.1"))
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -29,9 +29,25 @@
   :group 'applications)
 
 (defcustom browser-hist-db-paths
-  '((chrome . "$HOME/Library/Application Support/Google/Chrome/Default/History")
-    (brave . "$HOME/Library/Application Support/BraveSoftware/Brave-Browser/Default/History")
-    (firefox . "$HOME/Library/Application Support/Firefox/Profiles/rmgcr4hw.default-release/places.sqlite"))
+  (cond
+   ((eq system-type 'darwin)
+    '((chrome . "$HOME/Library/Application Support/Google/Chrome/Default/History")
+      (brave . "$HOME/Library/Application Support/BraveSoftware/Brave-Browser/Default/History")
+      (firefox . "$HOME/Library/Application Support/Firefox/Profiles/*.default-release/places.sqlite")
+      (safari . "$HOME/Library/Safari/History.db")
+      (chromium . "$HOME/Library/Application Support/Chromium/Default/History")))
+
+   ((memq system-type '(gnu gnu/linux gnu/kfreebsd berkeley-unix))
+    '((chrome . "$HOME/.config/google-chrome/Default/History")
+      (brave . "$HOME/.config/BraveSoftware/Brave-Browser/Default/History")
+      (firefox . "$HOME/.mozilla/firefox/*.default-release-*/places.sqlite")
+      (chromium . "$HOME/.config//Chromium/Default/History")))
+
+   ;; FIXME: have to figure out paths in Windows
+   ((memq system-type '(cygwin windows-nt ms-dos))
+    '((chrome . "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Default")
+      (brave . "")
+      (firefox . ""))))
   "Paths to sqlite DBs"
   :group 'browser-hist
   :type '(alist :key-type symbol :value string))
@@ -39,7 +55,7 @@
 (defcustom browser-hist-default-browser 'brave
   "Default browser."
   :group 'browser-hist
-  :type '(chrome brave firefox))
+  :type '(chrome chromium brave firefox safari))
 
 (defcustom browser-hist-ignore-query-params nil
   "When not nil, ignore everything after ? in url."
@@ -48,15 +64,18 @@
 
 (defvar browser-hist--db-queries
   '((chrome . "select distinct title, url from urls order by last_visit_time desc")
+    (chromium . "select distinct title, url from urls order by last_visit_time desc")
     (brave . "select distinct title, url from urls order by last_visit_time desc")
-    (firefox . "select distinct title, url from moz_places order by last_visit_date desc")))
+    (firefox . "select distinct title, url from moz_places order by last_visit_date desc")
+    (safari . "select distinct v.title, i.url from history_items i join history_visits v on i.id = v.history_item order by v.visit_time desc")))
 
 (defun browser-hist--make-db-copy (browser)
   "Copy browser's history db file to a temp dir.
 Browser history file is usually locked, in order to connect to
 db, we copy the file."
   (let* ((db-file (alist-get browser browser-hist-db-paths))
-         (hist-db (substitute-in-file-name db-file))
+         (hist-db (car (file-expand-wildcards
+                        (substitute-in-file-name db-file))))
          (new-fname (format "%sbhist-%s.sqlite"
                             (temporary-file-directory)
                             (symbol-name browser))))
@@ -74,11 +93,12 @@ db, we copy the file."
              (lambda (x) (or (null (car x)) (string-blank-p (car x)))))
             (seq-map
              (lambda (x)
-               (cons (string-trim-right
-                      (replace-regexp-in-string
-                       (if browser-hist-ignore-query-params "\\?.*" "")
-                       "" (cadr x)) "/")
-                     (car x)))))))
+               (when (and (car x) (cadr x))
+                (cons (string-trim-right
+                       (replace-regexp-in-string
+                        (if browser-hist-ignore-query-params "\\?.*" "")
+                        "" (cadr x)) "/")
+                      (car x))))))))
     rows))
 
 (defun browser-hist--completing-fn (coll)

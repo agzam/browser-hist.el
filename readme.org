@@ -2,24 +2,14 @@
 
 ** Description
 Browsers usually keep their history in a sqlite database, and it's trivial to extract it. This package allows you to search through your browser history by URL and the Page Title.
+** Requirements
+*Emacs 29*
+
+I'm sorry, I wrote the initial prototype in the Emacs instance I use myself. Only later I realized that the built-in sqlite support was added only in Emacs 29 and some changes are required to use the package in previous versions.
 
 ** How to use it
 *** 1. Install the package using your favorite package manager.
-*** 2. Set the mandatory variables
-- =browser-hist-db-paths= is an association list with paths to browser DBs.
-  *It needs to be set!*
-  The package currently doesn't have a way for discovering these paths, so this step has to be done manually.
-
-  example:
-  #+begin_src elisp
-  (setq browser-hist-db-paths
-        '((chrome . "$HOME/Library/Application Support/Google/Chrome/Default/History")
-          (brave . "$HOME/Library/Application Support/BraveSoftware/Brave-Browser/Default/History")
-          (firefox . "$HOME/Library/Application Support/Firefox/Profiles/rmgcr4hw.default-release/places.sqlite")))
-  #+end_src
-
-  You may ignore the browsers you don't use; right now the package works only with a single browser. Retrieving data for multiple browsers will be added at some point.
-
+*** 2. Set the mandatory variable(s)
 - =browser-hist-default-browser= - set this var, the package doesn't know yet how to resolve the default browser automatically
 
   example:
@@ -27,11 +17,25 @@ Browsers usually keep their history in a sqlite database, and it's trivial to ex
   (setq browser-hist-default-browser 'chrome)
   #+end_src
 
+- You may also have to set =browser-hist-db-paths= although it should resolve the paths automatically. If =browser-hist-search= command won't work, first thing I would suggest is to check the values that var holds and make sure that the path to the DB is correct. You can set it explicitly, e.g.,
+
+  #+begin_src elisp
+  (setq browser-hist-db-paths
+        '((chrome . "$HOME/Library/Application Support/Google/Chrome/Default/History")
+          (brave . "$HOME/Library/Application Support/BraveSoftware/Brave-Browser/Default/History")
+          (firefox . "$HOME/Library/Application Support/Firefox/Profiles/*.default-release/places.sqlite")))
+  #+end_src
+
+  You may even ignore the browsers you don't use; right now the package works only with a single browser. I'm considering adding data retrieval for multiple browsers at some point.
+
+**** Important note for Safari (Mac) users
+Make sure that Emacs has Full Disk Access. Otherwise, the system won't even let it touch the file. Go to *Preferences -> Privacy & Security -> Full Disk Access*, and add Emacs. Make sure Emacs has access to the folder, run =M-x find-file= and navigate to ~$HOME/Library/Safari/~ - it should let you.
+
 *** 3. Try it
 There's only one command =browser-hist-search=, try it and see if it works.
 
 ** Status: experimental
-I just created it, and it has many rough edges. It's been tested only on a Mac with Chrome, Brave and Firefox.
+I just created it, and it has many rough edges. Still, any feedback is appreciated.
 ** FAQ
 *** What's the point? Why even have this if you can do it in the browser?
 - It's convenient and a bit faster to bind the command to a key.
