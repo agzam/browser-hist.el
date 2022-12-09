@@ -5,7 +5,7 @@ Browsers usually keep their history in a sqlite database, and it's trivial to ex
 ** Requirements
 *Emacs 29*
 
-I'm sorry, I wrote the initial prototype in the Emacs instance I use myself. Only later I realized that the built-in sqlite support was added only in Emacs 29 and some changes are required to use the package in previous versions.
+I'm sorry, I wrote the initial prototype in the Emacs instance I use myself. Only later I realized that the built-in sqlite support was added only in Emacs 29 and some changes are required to use the package in previous versions. Follow [[https://github.com/agzam/browser-hist.el/issues/9][#9]] for updates.
 
 ** How to use it
 *** 1. Install the package using your favorite package manager.
@@ -17,7 +17,7 @@ I'm sorry, I wrote the initial prototype in the Emacs instance I use myself. Onl
   (setq browser-hist-default-browser 'chrome)
   #+end_src
 
-- You may also have to set =browser-hist-db-paths= although it should resolve the paths automatically. If =browser-hist-search= command won't work, first thing I would suggest is to check the values that var holds and make sure that the path to the DB is correct. You can set it explicitly, e.g.,
+- Optionally, you may have to set =browser-hist-db-paths=. The package should resolve these paths automatically. But if it fails you, the first thing I would suggest is to check the values that var holds and make sure that the path to the DB is correct. You can set the paths explicitly, like so:
 
   #+begin_src elisp
   (setq browser-hist-db-paths
@@ -31,11 +31,12 @@ I'm sorry, I wrote the initial prototype in the Emacs instance I use myself. Onl
 **** Important note for Safari (Mac) users
 Make sure that Emacs has Full Disk Access. Otherwise, the system won't even let it touch the file. Go to *Preferences -> Privacy & Security -> Full Disk Access*, and add Emacs. Make sure Emacs has access to the folder, run =M-x find-file= and navigate to ~$HOME/Library/Safari/~ - it should let you.
 
-*** 3. Try it
-There's only one command =browser-hist-search=, try it and see if it works.
+*** 3. And try it
+There's only one command right now, =browser-hist-search=, try running it and see if it works. Let me know if it doesn't.
 
 ** Status: experimental
 I just created it, and it has many rough edges. Still, any feedback is appreciated.
+
 ** FAQ
 *** What's the point? Why even have this if you can do it in the browser?
 - It's convenient and a bit faster to bind the command to a key.
