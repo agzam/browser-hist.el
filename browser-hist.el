@@ -21,6 +21,7 @@
 ;;
 ;;; Code:
 
+(require 'subr-x)
 (require 'browse-url)
 
 (defgroup browser-hist nil
