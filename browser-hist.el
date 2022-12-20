@@ -9,7 +9,7 @@
 ;; Version: 0.0.1
 ;; Keywords: convenience hypermedia matching tools
 ;; Homepage: https://github.com/agzam/browser-hist.el
-;; Package-Requires: ((emacs "29.1"))
+;; Package-Requires: ((emacs "27"))
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -18,6 +18,9 @@
 ;;; Commentary:
 ;;
 ;; Search through the Browser history
+;;
+;; Important!
+;; for Emacs prior 29, install sqlite.el package
 ;;
 ;;; Code:
 
@@ -53,7 +56,7 @@
   :group 'browser-hist
   :type '(alist :key-type symbol :value string))
 
-(defcustom browser-hist-default-browser 'brave
+(defcustom browser-hist-default-browser 'chrome
   "Default browser."
   :group 'browser-hist
   :type '(chrome chromium brave firefox safari))
@@ -85,11 +88,20 @@ db, we copy the file."
 
 (defun browser-hist--query (browser)
   "Query db."
-  (let* ((db (sqlite-open
-              (browser-hist--make-db-copy browser)))
+  (let* ((built-in? (and (fboundp 'sqlite-available-p)
+                         (sqlite-available-p)))
+         (db-file (browser-hist--make-db-copy browser))
+         (query (alist-get browser browser-hist--db-queries))
+         (db (if built-in?
+                 (sqlite-open db-file)
+               (progn
+                 (require 'sqlite)
+                 (sqlite-init db-file))))
          (rows
           (thread-last
-            (sqlite-select db (alist-get browser browser-hist--db-queries))
+            (if built-in?
+                (sqlite-select db query)
+             (sqlite-query db query))
             (seq-remove
              (lambda (x) (or (null (car x)) (string-blank-p (car x)))))
             (seq-map

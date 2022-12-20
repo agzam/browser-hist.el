@@ -3,12 +3,32 @@
 ** Description
 Browsers usually keep their history in a sqlite database, and it's trivial to extract it. This package allows you to search through your browser history by URL and the Page Title.
 ** Requirements
-*Emacs 29*
+*For Emacs versions prior 29, install sqlite.el*
 
-I'm sorry, I wrote the initial prototype in the Emacs instance I use myself. Only later I realized that the built-in sqlite support was added only in Emacs 29 and some changes are required to use the package in previous versions. Follow [[https://github.com/agzam/browser-hist.el/issues/9][#9]] for updates.
+Emacs 29 has built-in support for sqlite, but any prior versions of Emacs need sqlite.el installed.
 
 ** How to use it
 *** 1. Install the package using your favorite package manager.
+e.g., for Doom:
+
+packages.el:
+#+begin_src emacs-lisp
+(package! browser-hist :recipe (:host github :repo "agzam/browser-hist.el"))
+
+;; For Emacs versions prior 29
+(package! sqlite)
+#+end_src
+
+config.el:
+#+begin_src emacs-lisp
+(use-package! browser-hist
+  :init
+  (require 'embark) ; load Embark before the command (if you're using it)
+  :config
+  (setq browser-hist-default-browser 'firefox)
+  :commands (browser-hist-search))
+#+end_src
+
 *** 2. Set the mandatory variable(s)
 - =browser-hist-default-browser= - set this var, the package doesn't know yet how to resolve the default browser automatically
 
@@ -29,9 +49,11 @@ I'm sorry, I wrote the initial prototype in the Emacs instance I use myself. Onl
   You may even ignore the browsers you don't use; right now the package works only with a single browser. I'm considering adding data retrieval for multiple browsers at some point.
 
 **** Important note for Safari (Mac) users
-Make sure that Emacs has Full Disk Access. Otherwise, the system won't even let it touch the file. Go to *Preferences -> Privacy & Security -> Full Disk Access*, and add Emacs. Make sure Emacs has access to the folder, run =M-x find-file= and navigate to ~$HOME/Library/Safari/~ - it should let you.
+Make sure that Emacs has Full Disk Access. Otherwise, the system won't even let it touch the file.
 
-*** 3. And try it
+Go to *Preferences -> Privacy & Security -> Full Disk Access*, and add Emacs. Make sure Emacs has access to the folder, run =M-x find-file= and navigate to ~$HOME/Library/Safari/~ - it should let you.
+
+*** 3. Try it
 There's only one command right now, =browser-hist-search=, try running it and see if it works. Let me know if it doesn't.
 
 ** Status: experimental
