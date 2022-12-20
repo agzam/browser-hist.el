@@ -5,7 +5,17 @@ Browsers usually keep their history in a sqlite database, and it's trivial to ex
 ** Requirements
 *For Emacs versions prior 29, install sqlite.el*
 
-Emacs 29 has built-in support for sqlite, but any prior versions of Emacs need sqlite.el installed.
+Emacs 29 has built-in support for sqlite, but any prior versions of Emacs need [[https://gitlab.com/cnngimenez/sqlite.el][sqlite.el]] installed.
+
+Note that if you add the package to your config and at some point do switch to Emacs 29, you'd have to remove it because Emacs 29 also includes a package with the same exact name.
+
+It's probably possible to wrap the package declaration in a check like:
+#+begin_src emacs-lisp
+(unless (and (fboundp 'sqlite-available-p)
+             (sqlite-available-p))
+  (package! sqlite))
+#+end_src
+But I'm not sure if that would properly work, and of course, it all depends on the package manager you're using.
 
 ** How to use it
 *** 1. Install the package using your favorite package manager.
@@ -21,6 +31,9 @@ packages.el:
 
 config.el:
 #+begin_src emacs-lisp
+;; For Emacs versions prior 29
+(use-package! sqlite)
+
 (use-package! browser-hist
   :init
   (require 'embark) ; load Embark before the command (if you're using it)
