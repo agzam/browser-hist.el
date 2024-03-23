@@ -97,22 +97,42 @@
     (safari   "v.title" "i.url" "history_items"
      "i JOIN history_visits v ON i.id = v.history_item ORDER BY v.visit_time desc")))
 
+(defcustom browser-hist-cache-timeout 0
+  "How often to refresh the browser history cache.
+
+This is a time in seconds.  If the cache is out of date from the
+browser history by more than this time, it is refreshed by
+copying the browser history file.
+
+A timeout of 0 (default) means the file is copied whenever the
+browser history has been updated."
+  :type 'natnum
+  :group 'browser-hist)
+
 (defsubst browser-hist--db-copy-name (browser)
   (format "%sbhist-%s.sqlite"
           (temporary-file-directory)
           (symbol-name browser)))
 
 (defun browser-hist--make-db-copy (browser &optional force-update)
-  "Copy browser's history db file to a temp dir.
+  "Copy BROWSER's history db file to a temp dir.
+
 Browser history file is usually locked, in order to connect to
-db, we copy the file."
+db, we copy the file if it is suffciently newer.  (See
+`browser-hist-cache-timeout'.)
+
+If FORCE-UPDATE is non-nil, copy the db file anyway."
   (let* ((db-file (alist-get browser browser-hist-db-paths))
          (hist-db (car (file-expand-wildcards
                         (substitute-in-file-name db-file))))
          (new-fname (browser-hist--db-copy-name browser)))
     (if (or force-update
             (not (file-exists-p new-fname))
-            (file-newer-than-file-p hist-db new-fname))
+            (> (time-to-seconds
+                (time-subtract
+                 (file-attribute-modification-time (file-attributes hist-db))
+                 (file-attribute-modification-time (file-attributes new-fname))))
+               browser-hist-cache-timeout))
         (copy-file hist-db new-fname :overwite :keep-time)
       new-fname)))
 
