@@ -24,8 +24,8 @@
 ;;
 ;;; Code:
 
-(require 'subr-x)
 (require 'browse-url)
+(eval-when-compile (require 'cl-lib))
 
 (eval-when-compile
   (if (and (fboundp 'sqlite-available-p)
@@ -81,24 +81,28 @@
   :type 'boolean)
 
 (defvar browser-hist--db-fields
-  '((chrome   "title"   "url"   "urls"          "order by last_visit_time desc")
-    (chromium "title"   "url"   "urls"          "order by last_visit_time desc")
-    (brave    "title"   "url"   "urls"          "order by last_visit_time desc")
-    (firefox  "title"   "url"   "moz_places"    "order by last_visit_date desc")
+  '((chrome   "title"   "url"   "urls"          "ORDER BY last_visit_time desc")
+    (chromium "title"   "url"   "urls"          "ORDER BY last_visit_time desc")
+    (brave    "title"   "url"   "urls"          "ORDER BY last_visit_time desc")
+    (firefox  "title"   "url"   "moz_places"    "ORDER BY last_visit_date desc")
     (safari   "v.title" "i.url" "history_items"
-     "i join history_visits v on i.id = v.history_item order by v.visit_time desc")))
+     "i JOIN history_visits v ON i.id = v.history_item ORDER BY v.visit_time desc")))
 
-(defun browser-hist--make-db-copy (browser)
+(defsubst browser-hist--db-copy-name (browser)
+  (format "%sbhist-%s.sqlite"
+          (temporary-file-directory)
+          (symbol-name browser)))
+
+(defun browser-hist--make-db-copy (browser &optional force-update)
   "Copy browser's history db file to a temp dir.
 Browser history file is usually locked, in order to connect to
 db, we copy the file."
   (let* ((db-file (alist-get browser browser-hist-db-paths))
          (hist-db (car (file-expand-wildcards
                         (substitute-in-file-name db-file))))
-         (new-fname (format "%sbhist-%s.sqlite"
-                            (temporary-file-directory)
-                            (symbol-name browser))))
-    (if (or (not (file-exists-p new-fname))
+         (new-fname (browser-hist--db-copy-name browser)))
+    (if (or force-update
+            (not (file-exists-p new-fname))
             (file-newer-than-file-p hist-db new-fname))
         (copy-file hist-db new-fname :overwite :keep-time)
       new-fname)))
@@ -106,48 +110,51 @@ db, we copy the file."
 (defvar browser-hist--db-connection nil)
 
 (defun browser-hist--send-query (strings)
-  "Build the sql query from the minibuffer input"
-  (pcase-let* ((`(,title ,url ,table ,rest)
-                (alist-get browser-hist-default-browser
-                           browser-hist--db-fields))
-               (full-query
-                (cl-loop for s in (split-string strings)
-                         collect (format " ( %s LIKE '%%%s%%' OR %s LIKE '%%%s%%' ) "
-                                         title s url s)
-                         into queries
-                         finally return
-                         (concat (format "SELECT DISTINCT %s, %s FROM %s WHERE"
-                                  title url table)
-                                 (mapconcat #'identity queries " AND ")
-                                 rest)))
-               (db (or browser-hist--db-connection
-                       (setq browser-hist--db-connection
-                             (browser-hist--sqlite-open
-                              (browser-hist--make-db-copy browser-hist-default-browser)))))
-               (rows
-                (thread-last
-                  (browser-hist--sqlite-select db full-query)
-                  (seq-remove
-                   (lambda (x) (or (null (car x)) (string-blank-p (car x)))))
-                  (seq-map
-                   (lambda (x)
-                     (when (and (car x) (cadr x))
-                       (cons (string-trim-right
-                              (replace-regexp-in-string
-                               (if browser-hist-ignore-query-params "\\?.*" "")
-                               "" (cadr x)) "/")
-                             (car x))))))))
-    rows))
+  "Find database entries matching STRINGS.
+
+If STRINGS is nil return the latest 100 entries."
+  (let ((full-query
+         (cl-loop with (title url table rest) =
+                  (alist-get browser-hist-default-browser browser-hist--db-fields)
+                  with emptyp = (or (not strings) (string-empty-p strings))
+                  ;; collect WHERE queries if strings is non-empty
+                  for s in (and (not emptyp) (split-string strings))
+                  collect (format " ( %s LIKE '%%%s%%' OR %s LIKE '%%%s%%' ) "
+                                  title s url s)
+                  into queries
+                  finally return        ;Construct full query
+                  (concat
+                   (format "SELECT DISTINCT %s, %s FROM %s " title url table)
+                   (and (not emptyp) " WHERE ") ;Match strings
+                   (mapconcat #'identity queries " AND ") rest
+                   (and emptyp " LIMIT 100")))) ;No match, just return history
+        (db (or browser-hist--db-connection
+                (setq browser-hist--db-connection
+                      (browser-hist--sqlite-open
+                       (browser-hist--db-copy-name
+                        browser-hist-default-browser))))))
+    (cl-loop for (desc link) in (browser-hist--sqlite-select db full-query)
+             unless (or (null desc) (string-blank-p desc))
+             collect (cons (string-trim-right
+                            (replace-regexp-in-string
+                             (if browser-hist-ignore-query-params "\\?.*" "")
+                             "" link))
+                           desc))))
 
 (defun browser-hist--completion-table (s _ flag)
-  (let ((rows-raw (and (>= (length (string-trim s))
+  (let* ((rows-raw (if (>= (length (string-trim s))
                            browser-hist-minimum-query-length)
-                       (browser-hist--send-query s))))
+                       (browser-hist--send-query s)
+                     (browser-hist--send-query nil))))
     (pcase flag
       ('metadata
        `(metadata
          (annotation-function
-          ,@(lambda (x) (concat "\n\t" (alist-get x rows-raw nil nil #'string=))))
+          ,@(lambda (x)
+              (concat " "
+               (if (> (length x) (floor (window-width) 2))
+                   "\n\t" (propertize " " 'display '(space :align-to (- center 1))))
+               (alist-get x rows-raw nil nil #'string=))))
          (display-sort-function ,@(lambda (xs) xs))
          (category . url)))
       ('nil (try-completion s rows-raw))
@@ -155,17 +162,19 @@ db, we copy the file."
 
 (defun browser-hist--url-transformer (type target)
   "Remove title from TARGET url appended by `browser-hist-search'"
-  `(,type .
-    ,(replace-regexp-in-string "\t.*" "" target)))
+  `(,type . ,(replace-regexp-in-string "\t.*" "" target)))
 
 (defun browser-hist--url-handler (url &rest _)
   "Remove title from TARGET url appended by `browser-hist-search'"
   (browse-url (replace-regexp-in-string "\t.*" "" url)))
 
 ;;;###autoload
-(defun browser-hist-search ()
-  "Search through browser history."
-  (interactive)
+(defun browser-hist-search (&optional force-update)
+  "Search through browser history.
+
+With prefix-arg FORCE-UPDATE, ensure that the history cache is
+updated."
+  (interactive "P")
   (unless (member '(".*\t" . browser-hist--url-handler)
                   browse-url-handlers)
     (add-to-list 'browse-url-handlers '(".*\t" . browser-hist--url-handler)))
@@ -177,10 +186,15 @@ db, we copy the file."
        'embark-transformer-alist
        '(url . browser-hist--url-transformer))))
 
+  (when force-update (message "Forcing browser history update"))
+  (browser-hist--make-db-copy browser-hist-default-browser force-update)
+  
   (unwind-protect
-      (let ((selected
-             (completing-read "Browser history: "
-                              #'browser-hist--completion-table)))
+      (let*
+          ((completion-styles '(basic partial-completion))
+           (selected
+            (completing-read "Browser history: "
+                             #'browser-hist--completion-table)))
         (browse-url selected))
     (and browser-hist--db-connection
          (ignore-errors (sqlite-close browser-hist--db-connection))
