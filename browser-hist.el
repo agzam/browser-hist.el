@@ -27,14 +27,23 @@
 (require 'browse-url)
 (eval-when-compile (require 'cl-lib))
 
-(eval-when-compile
+(declare-function sqlite-close "sqlite")
+
+(defmacro browser-hist--sqlite-open (file)
   (if (and (fboundp 'sqlite-available-p)
            (sqlite-available-p))
-      (progn (defalias 'browser-hist--sqlite-open 'sqlite-open)
-             (defalias 'browser-hist--sqlite-select 'sqlite-select))
+      `(sqlite-open ,file)
     (require 'sqlite)
-    (defalias 'browser-hist--sqlite-open 'sqlite-init)
-    (defalias 'browser-hist--sqlite-select 'sqlite-query)))
+    (declare-function sqlite-init  "sqlite")
+    `(sqlite-init ,file)))
+
+(defmacro browser-hist--sqlite-select (db query)
+  (if (and (fboundp 'sqlite-available-p)
+           (sqlite-available-p))
+      `(sqlite-select ,db ,query)
+    (require 'sqlite)
+    (declare-function sqlite-query  "sqlite")
+    `(sqlite-query ,db ,query)))
 
 (defgroup browser-hist nil
   "browser-hist group"
