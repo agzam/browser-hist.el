@@ -146,7 +146,8 @@ If STRINGS is nil return the latest 100 entries."
          (cl-loop with (title url table rest) =
                   (alist-get browser-hist-default-browser browser-hist--db-fields)
                   with emptyp = (or (not strings) (string-empty-p strings))
-                  ;; collect WHERE queries if strings is non-empty
+                  with where = " WHERE ( title IS NOT NULL AND TITLE <> '' ) "
+                  ;; collect more WHERE queries if strings is non-empty
                   for s in (and (not emptyp) (split-string strings))
                   collect (format " ( %s LIKE '%%%s%%' OR %s LIKE '%%%s%%' ) "
                                   title s url s)
@@ -154,16 +155,14 @@ If STRINGS is nil return the latest 100 entries."
                   finally return        ;Construct full query
                   (concat
                    (format "SELECT DISTINCT %s, %s FROM %s " title url table)
-                   (and (not emptyp) " WHERE ") ;Match strings
-                   (mapconcat #'identity queries " AND ") rest
-                   (and emptyp " LIMIT 100")))) ;No match, just return history
+                   (mapconcat #'identity (cons where queries) " AND ")
+                   rest (and emptyp " LIMIT 100")))) ;No match, just return history
         (db (or browser-hist--db-connection
                 (setq browser-hist--db-connection
                       (browser-hist--sqlite-open
                        (browser-hist--db-copy-name
                         browser-hist-default-browser))))))
     (cl-loop for (desc link) in (browser-hist--sqlite-select db full-query)
-             unless (or (null desc) (string-blank-p desc))
              collect (cons (string-trim-right
                             (replace-regexp-in-string
                              (if browser-hist-ignore-query-params "\\?.*" "")
