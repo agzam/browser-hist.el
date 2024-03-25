@@ -30,6 +30,7 @@
 (declare-function sqlite-close "sqlite")
 
 (defmacro browser-hist--sqlite-open (file)
+  "Backward-compatible version of: open FILE as an sqlite db."
   (if (and (fboundp 'sqlite-available-p)
            (sqlite-available-p))
       `(sqlite-open ,file)
@@ -38,6 +39,7 @@
     `(sqlite-init ,file)))
 
 (defmacro browser-hist--sqlite-select (db query)
+  "Backward-compatible version of: select data from the DB that matches QUERY."
   (if (and (fboundp 'sqlite-available-p)
            (sqlite-available-p))
       `(sqlite-select ,db ,query)
@@ -46,7 +48,7 @@
     `(sqlite-query ,db ,query)))
 
 (defgroup browser-hist nil
-  "browser-hist group"
+  "Group for browser-hist."
   :prefix "browser-hist-"
   :group 'applications)
 
@@ -75,7 +77,7 @@
     '((chrome . "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Default")
       (brave . "")
       (firefox . ""))))
-  "Paths to sqlite DBs"
+  "Paths to sqlite DBs."
   :group 'browser-hist
   :type '(alist :key-type symbol :value string))
 
@@ -110,6 +112,7 @@ browser history has been updated."
   :group 'browser-hist)
 
 (defsubst browser-hist--db-copy-name (browser)
+  "DB copy name for BROWSER."
   (format "%sbhist-%s.sqlite"
           (temporary-file-directory)
           (symbol-name browser)))
@@ -118,7 +121,7 @@ browser history has been updated."
   "Copy BROWSER's history db file to a temp dir.
 
 Browser history file is usually locked, in order to connect to
-db, we copy the file if it is suffciently newer.  (See
+db, we copy the file if it is sufficiently newer.  (See
 `browser-hist-cache-timeout'.)
 
 If FORCE-UPDATE is non-nil, copy the db file anyway."
@@ -170,6 +173,9 @@ If STRINGS is nil return the latest 100 entries."
                            desc))))
 
 (defun browser-hist--completion-table (s _ flag)
+  "Completion table for `browser-hist-search'.
+
+Uses S and FLAG as documented in `completing-read' documentation."
   (let* ((rows-raw (if (>= (length (string-trim s))
                            browser-hist-minimum-query-length)
                        (browser-hist--send-query s)
@@ -189,19 +195,18 @@ If STRINGS is nil return the latest 100 entries."
       ('t (mapcar #'car rows-raw)))))
 
 (defun browser-hist--url-transformer (type target)
-  "Remove title from TARGET url appended by `browser-hist-search'"
+  "Remove title of TYPE from TARGET url appended by `browser-hist-search'."
   `(,type . ,(replace-regexp-in-string "\t.*" "" target)))
 
 (defun browser-hist--url-handler (url &rest _)
-  "Remove title from TARGET url appended by `browser-hist-search'"
+  "Remove title from target URL appended by `browser-hist-search'."
   (browse-url (replace-regexp-in-string "\t.*" "" url)))
 
 ;;;###autoload
 (defun browser-hist-search (&optional force-update)
   "Search through browser history.
 
-With prefix-arg FORCE-UPDATE, ensure that the history cache is
-updated."
+With FORCE-UPDATE argument, ensure that the history cache is updated."
   (interactive "P")
   (unless (member '(".*\t" . browser-hist--url-handler)
                   browse-url-handlers)

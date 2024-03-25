@@ -61,6 +61,22 @@ config.el:
 
   You may even ignore the browsers you don't use; right now the package works only with a single browser. I'm considering adding data retrieval for multiple browsers at some point.
 
+- Set minimum number of chars (optional)
+
+  #+begin_src elisp
+  (setq browser-hist-minimum-query-length 2) ; default is 3
+  #+end_src
+
+- Set cache invalidation (optional)
+
+  The browser history database needs to be copied every time. Depending on its size, it may take a second or more. If you don't necessarily care for the most recent items in the history and only want to occasionally search for older items, you may want to set the cache timeout value. This way, the search dialog will open faster, at the expense of missing some of the most recent items. In my experience, however, this variable almost always can remain at 0 and not affect performance at all.
+
+   #+begin_src elisp
+   (setq browser-hist-cache-timeout 60) ; default is 0
+   #+end_src
+
+  The main search command can be called with a prefix argument that forces it to ignore cached DB and copy it anew.
+
 **** Important note for Safari (Mac) users
 Make sure that Emacs has Full Disk Access. Otherwise, the system won't even let it touch the file.
 
@@ -69,16 +85,11 @@ Go to *Preferences -> Privacy & Security -> Full Disk Access*, and add Emacs. Ma
 *** 3. Try it
 There's only one command right now, =browser-hist-search=, try running it and see if it works. Let me know if it doesn't.
 
-** Status: experimental
-I just created it, and it has many rough edges. Still, any feedback is appreciated.
-
 ** FAQ
 *** What's the point? Why even have this if you can do it in the browser?
 - It's convenient and a bit faster to bind the command to a key.
 - And then, using an [[https://github.com/oantolin/embark][Embark]] Action you can open the link in EWW, in XWidget, or any other browser (not necessarily the history origin one).
 - You can also narrow the search and export the results into a separate buffer using Embark Collect.
-- It opens some other possibilities like sending a link to a browser but forcing it to find the tab (if there's an open one already, e.g., why open another GMail tab?) /I'll share an example of how this could be done using Applescript/.
-  Or maybe open the link in a private tab of a chosen browser.
+- It opens some other possibilities like sending a link to a browser but forcing it to find the tab (if there's an open one already, e.g., why open another GMail tab?) /That could be done using Applescript on Mac, xdotool or TabFS on Linux/.
+- Or maybe open the link in a private tab of a chosen browser.
 - I'm also hoping at some point to collect data from multiple browsers.
-*** How come when I type, it highlights within URLs, but not titles
-see: https://github.com/agzam/browser-hist.el/issues/7
