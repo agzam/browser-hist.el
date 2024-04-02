@@ -96,8 +96,7 @@
     (chromium "title"   "url"   "urls"          "ORDER BY last_visit_time desc")
     (brave    "title"   "url"   "urls"          "ORDER BY last_visit_time desc")
     (firefox  "title"   "url"   "moz_places"    "ORDER BY last_visit_date desc")
-    (safari   "v.title" "i.url" "history_items"
-     "i JOIN history_visits v ON i.id = v.history_item ORDER BY v.visit_time desc")))
+    (safari   "v.title" "i.url" "history_items i JOIN history_visits v ON i.id = v.history_item"  "ORDER BY v.visit_time desc")))
 
 (defcustom browser-hist-cache-timeout 0
   "How often to refresh the browser history cache.
