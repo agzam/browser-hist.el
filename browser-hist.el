@@ -70,7 +70,8 @@
     '((chrome . "$HOME/.config/google-chrome/Default/History")
       (brave . "$HOME/.config/BraveSoftware/Brave-Browser/Default/History")
       (firefox . "$HOME/.mozilla/firefox/*.default-release-*/places.sqlite")
-      (chromium . "$HOME/.config//Chromium/Default/History")))
+      (qutebrowser . "$HOME/.local/share/qutebrowser/history.sqlite")
+      (chromium . "$HOME/.config/Chromium/Default/History")))
 
    ;; FIXME: have to figure out paths in Windows
    ((memq system-type '(cygwin windows-nt ms-dos))
@@ -84,7 +85,7 @@
 (defcustom browser-hist-default-browser 'chrome
   "Default browser."
   :group 'browser-hist
-  :type '(chrome chromium brave firefox safari))
+  :type '(chrome chromium brave firefox safari qutebrowser))
 
 (defcustom browser-hist-ignore-query-params nil
   "When not nil, ignore everything after ? in url."
@@ -92,11 +93,12 @@
   :type 'boolean)
 
 (defvar browser-hist--db-fields
-  '((chrome   "title"   "url"   "urls"          "ORDER BY last_visit_time desc")
-    (chromium "title"   "url"   "urls"          "ORDER BY last_visit_time desc")
-    (brave    "title"   "url"   "urls"          "ORDER BY last_visit_time desc")
-    (firefox  "title"   "url"   "moz_places"    "ORDER BY last_visit_date desc")
-    (safari   "v.title" "i.url" "history_items i JOIN history_visits v ON i.id = v.history_item"  "ORDER BY v.visit_time desc")))
+  '((chrome      "title"    "url"    "urls"          "ORDER BY last_visit_time desc")
+    (chromium    "title"    "url"    "urls"          "ORDER BY last_visit_time desc")
+    (qutebrowser "title"    "url"    "History"       "ORDER BY atime           desc")
+    (brave       "title"    "url"    "urls"          "ORDER BY last_visit_time desc")
+    (firefox     "title"    "url"    "moz_places"    "ORDER BY last_visit_date desc")
+    (safari      "v.title"  "i.url"  "history_items i JOIN history_visits v ON i.id = v.history_item" "ORDER BY v.visit_time desc")))
 
 (defcustom browser-hist-cache-timeout 0
   "How often to refresh the browser history cache.
