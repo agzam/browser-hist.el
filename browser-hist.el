@@ -85,7 +85,9 @@
 (defcustom browser-hist-default-browser 'chrome
   "Default browser."
   :group 'browser-hist
-  :type '(chrome chromium brave firefox safari qutebrowser))
+  :type '(choice (const chrome) (const chromium) (const brave)
+                 (const firefox) (const safari) (const qutebrowser)
+                 (symbol :tag "Other browser")))
 
 (defcustom browser-hist-ignore-query-params nil
   "When not nil, ignore everything after ? in url."
